@@ -1,35 +1,38 @@
+import inspect
+from functools import wraps
 
 def returns( expected_types ):
     if not isinstance( expected_types, tuple ):
         expected_types = ( expected_types, )
     def checker( fn ):
+        @wraps(fn)
         def check_ret( *args, **kwargs ):
             value = fn( *args, **kwargs )
             if type( value ) not in expected_types:
                 raise TypeError( "Call of '%s': wrong return type (value '%s' is of %s, expected %s)" \
                                  % ( fn.func_name, value, type( value ), expected_types ) )
             return value
-        # propagate function object attributes
-        check_ret.func_name = fn.func_name
-        check_ret.func_doc = fn.func_doc
-        check_ret.func_dict = fn.func_dict
-        #check_args.func_code = fn.func_code
+        # base fn link for decorator chaining
+        check_ret.func_dict['_fn'] = fn.func_dict.get( '_fn', fn )
         return check_ret
     return checker
 
 def accepts( *targs, **tkwargs ):
     def checker( fn ):
+        # determine argument names (we have to inspect the original function)
+        arg_names = inspect.getargspec( fn.func_dict.get( '_fn', fn ) )[0]
         # build type map
-        type_map = dict( zip( fn.func_code.co_varnames, targs ) )
+        type_map = dict( zip( arg_names, targs ) )
         type_map.update( tkwargs )
         for k, v in type_map.iteritems():
-            if not isinstance( k, tuple ):
+            if not isinstance( v, tuple ):
                 type_map[k] = ( v, )
+
+        @wraps(fn)
         def check_args( *args, **kwargs ):
             # build arg map
-            arg_map = dict( zip( fn.func_code.co_varnames, args ) )
+            arg_map = dict( zip( arg_names, args ) )
             arg_map.update( kwargs )
-            #print arg_map
             # check whether all explicit types fit
             for ( name, expected_types ) in type_map.items():
                 value = arg_map[name]
@@ -37,11 +40,8 @@ def accepts( *targs, **tkwargs ):
                     raise TypeError( "Call of '%s': wrong type of parameter '%s' (value '%s' is of %s, expected %s)" \
                                      % ( fn.func_name, name, value, type( value ), expected_types ) )
             return fn( *args, **kwargs )
-        # propagate function object attributes
-        check_args.func_name = fn.func_name
-        check_args.func_doc = fn.func_doc
-        check_args.func_dict = fn.func_dict
-        #check_args.func_code = fn.func_code
+        # base fn link for decorator chaining
+        check_args.func_dict['_fn'] = fn.func_dict.get( '_fn', fn )
         return check_args
     return checker
 
@@ -55,7 +55,7 @@ def three_floats( a, b, c ):
         >>> three_floats( 3.3, 2.0, 1 )
         Traceback (most recent call last):
         ...
-        TypeError: Call of 'three_floats': wrong type of parameter 'value' (value '1' is of <type 'int'>, expected (<type 'float'>,))
+        TypeError: Call of 'three_floats': wrong type of parameter 'c' (value '1' is of <type 'int'>, expected (<type 'float'>,))
         """
     return a + b + c
 
@@ -72,7 +72,7 @@ def increment( val ):
     """
     return val + 1
 
-@accepts( name=str, age=int )
+@accepts( name=str, age=(int,float) )
 def named_args( name, age, data ):
     """
         >>> named_args( 'John', 32, {} )
@@ -82,16 +82,14 @@ def named_args( name, age, data ):
         Jack (16): personal data
 
         >>> named_args( 'Sally', 87.5, [] )
-        Traceback (most recent call last):
-        ...
-        TypeError: Call of 'named_args': wrong type of parameter 'age' (value '87.5' is of <type 'float'>, expected (<type 'int'>,))
+        Sally (87.5): []
 
         >>> named_args( 'Monica', data=( 'secret', 'code' ), age='53' )
         Traceback (most recent call last):
         ...
-        TypeError: Call of 'named_args': wrong type of parameter 'age' (value '53' is of <type 'str'>, expected (<type 'int'>,))
+        TypeError: Call of 'named_args': wrong type of parameter 'age' (value '53' is of <type 'str'>, expected (<type 'int'>, <type 'float'>))
     """
-    print '%s (%d):' % ( name, age ), data
+    print '%s (%s):' % ( name, str(age) ), data
 
 
 def _test():
@@ -101,13 +99,3 @@ def _test():
 if __name__ == "__main__":
     _test()
 
-#named_args( 'Jack', age=16, data='personal data' )        
-#three_floats( 3.3, 2.0, 1.0 )
-#named_args( 'John', 32, {} )
-#named_args( 'Jack', 16, 'personal data' )
-#named_args( 'Sally', 87.5, [] )
-
-#increment( 1 )
-#increment( 1.0 )
-#three_floats( 3.3, 2.0, 'a' )
-#return_float()
