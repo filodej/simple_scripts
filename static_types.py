@@ -24,6 +24,19 @@ def arg_types( *types ):
         return check_args
     return checker
 
+def arg_some_types( **types ):
+    def checker( fn ):
+        def check_args( *params ):
+            arg_map = dict( zip( fn.func_code.co_varnames, params ) )
+            for ( name, expected_type ) in types.items():
+                value = arg_map[name]
+                if not isinstance( value, expected_type ):
+                    raise TypeError( "Call of '%s': wrong type of parameter '%s' (value '%s' is of %s, expected %s)" \
+                                     % ( fn.func_name, name, value, type( value ), expected_type ) )
+            return fn( *params )
+        return check_args
+    return checker
+
 @arg_types( float, float, float )
 #@ret_type( float )
 def three_floats( a, b, c ):
@@ -33,8 +46,17 @@ def three_floats( a, b, c ):
 def increment( val ):
     return val + 1
 
+@arg_some_types( name=str, age=int )
+def named_args( name, age, data ):
+    print '%s (%d):' % ( name, age )
+    print data
+
+named_args( 'John', 32, {} )
+named_args( 'Jack', 16, 'personal data' )
+named_args( 'Sally', 87.5, [] )
+
 #three_floats( 3.3, 2.0, 1.0 )
 #increment( 1 )
 #increment( 1.0 )
-three_floats( 3.3, 2.0, 'a' )
+#three_floats( 3.3, 2.0, 'a' )
 #return_float()
