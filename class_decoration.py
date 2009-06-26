@@ -1,4 +1,4 @@
-def add_getters( obj ):
+def add_getters( obj, pattern = 'get_%s' ):
     """
         >>> class A:
         ... 	def __init__( self ): self.a = None; self.b = []
@@ -24,11 +24,11 @@ def add_getters( obj ):
         
     import new
     d = obj.__dict__
-    getters = [ ( 'get_'+name, new.instancemethod( getter_creator( name ), obj, obj.__class__ ) )
+    getters = [ ( pattern % name, new.instancemethod( getter_creator( name ), obj, obj.__class__ ) )
                     for name, value in d.items() if not callable( value ) ]
     d.update( dict( getters ) )
 
-def add_setters( obj ):
+def add_setters( obj, pattern = 'set_%s' ):
     """
         >>> class A:
         ... 	def __init__( self ): self.a = None; self.b = []
@@ -57,7 +57,7 @@ def add_setters( obj ):
     
     import new
     d = obj.__dict__
-    setters = [ ( 'set_'+name, new.instancemethod( setter_creator( name ), obj, obj.__class__ ) )
+    setters = [ ( pattern % name, new.instancemethod( setter_creator( name ), obj, obj.__class__ ) )
                     for name, value in d.items() if not callable( value ) ]
     d.update( dict( setters ) )
 
