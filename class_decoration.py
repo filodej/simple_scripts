@@ -24,15 +24,16 @@ def add_getters_setters( obj ):
     add_getters( obj )
     add_setters( obj )
 
-a = A()
-print dir( a )
-add_setters( a )
-print dir( a )
-print a.set_a
-a.set_a( 'a' )
-a.set_b( [1,2] )
-add_getters( a )
-print dir( a )
-a.get_a()
-a.get_b()
+if __name__ == '__main__':
+    a = A()
+    print dir( a )
+    add_setters( a )
+    print dir( a )
+    print a.set_a
+    a.set_a( 'a' )
+    a.set_b( [1,2] )
+    add_getters( a )
+    print dir( a )
+    a.get_a()
+    a.get_b()
 
