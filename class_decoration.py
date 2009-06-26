@@ -14,13 +14,17 @@ def add_getters( obj ):
         >>> print dir(a)
         ['__doc__', '__init__', '__module__', 'a', 'b', 'get_a', 'get_b', 'x']
         >>> a.get_a()
-        None
         >>> a.get_b()
         []
     """
+    def getter_creator( name ):
+        def getter( self_ ):
+            return getattr( self_, name )
+        return getter
+        
     import new
     d = obj.__dict__
-    getters = [ ( 'get_'+name, new.instancemethod( lambda _self: getattr( _self, name ), obj, obj.__class__ ) )
+    getters = [ ( 'get_'+name, new.instancemethod( getter_creator( name ), obj, obj.__class__ ) )
                     for name, value in d.items() if not callable( value ) ]
     d.update( dict( getters ) )
 
@@ -46,9 +50,14 @@ def add_setters( obj ):
         >>> a.b
         [1, 2]
     """
+    def setter_creator( name ):
+        def setter( self_, val ):
+            return setattr( self_, name, val )
+        return setter
+    
     import new
     d = obj.__dict__
-    setters = [ ( 'set_'+name, new.instancemethod( lambda _self, val: setattr( _self, name, val ), obj, obj.__class__ ) )
+    setters = [ ( 'set_'+name, new.instancemethod( setter_creator( name ), obj, obj.__class__ ) )
                     for name, value in d.items() if not callable( value ) ]
     d.update( dict( setters ) )
 
@@ -67,10 +76,7 @@ def add_getters_setters( obj ):
         >>> add_getters_setters( a )
         >>> print dir(a)
         ['__doc__', '__init__', '__module__', 'a', 'b', 'get_a', 'get_b', 'set_a', 'set_b', 'x']
-        >>> a.get_a
-        <bound method A.<lambda> of <__main__.A instance at ...
         >>> a.get_a()
-        None
         >>> a.set_a( 1 )
         >>> a.get_a()
         1
